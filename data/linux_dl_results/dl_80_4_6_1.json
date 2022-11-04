@@ -1,0 +1,22 @@
+{
+    "estimates": [],
+    "missed deadlines": [
+        [
+            0,
+            10
+        ],
+        [
+            1000,
+            44
+        ],
+        [
+            4500,
+            3
+        ],
+        [
+            34500,
+            1
+        ]
+    ],
+    "sum missed deadlines": 58
+}
