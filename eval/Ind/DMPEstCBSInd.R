@@ -70,4 +70,4 @@ ksList = list(c(8, 10), c(6, 8), c(6,8))
 filename = "../../data/traces_reports_csv/control_time.csv"
 
 print("results")
-testDMPAll(QsList, nsList, ksList, filename, nSequences, 100000)
+testDMPAll(QsList, nsList, ksList, filename, nSequences, 1000000)
