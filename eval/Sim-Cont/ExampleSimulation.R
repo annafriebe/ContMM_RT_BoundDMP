@@ -1,8 +1,6 @@
 library(MASS)
 library(ggplot2)
 
-set.seed(42)
-
 calcStationaryProbDistr <- function(transitionMatrix){
   r=eigen(transitionMatrix)
   rvec=r$vectors
@@ -14,25 +12,25 @@ calcStationaryProbDistr <- function(transitionMatrix){
   print(pi_eig)
 }
 
-countDMSim <- function(startingState, n, transitionMatrix, means, stddevs, deadline, nQs, nStates){
+countDMSim <- function(startingState, n, transitionMatrix, means, stddevs, deadline, nQs){
   currentState = startingState
   workload = 0
-  stateCount = rep(0, nStates)
-  lengthsStatesCount = matrix(data = rep(0, nStates*200), nrow = 200, ncol = nStates)
-  lengthsCount = rep(0, 200)
-  deadlineMissCountState = rep(0, nStates)
+  stateCount = rep(0, 2)
+  lengthsStatesCount = matrix(data = rep(0, 60), nrow = 30, ncol = 2)
+  lengthsCount = rep(0, 30)
+  deadlineMissCountState = rep(0,2)
   nWLMax = 0
   nWL = 1
   zeroWLCount = 0
-  zeroWLCountPerState = rep(0, nStates)
+  zeroWLCountPerState = rep(0, 2)
   for(i in 1:n){
     stateProbs = transitionMatrix[currentState,]
-    currentState = sample(1:nStates, size=1, prob = stateProbs)
+    currentState = sample(1:2, size=1, prob = stateProbs)
     stateCount[currentState] = stateCount[currentState]+1
     lengthsCount[nWL] = lengthsCount[nWL]+1
     lengthsStatesCount[nWL,currentState] = lengthsStatesCount[nWL,currentState] + 1
-
-    et = rnorm(1, mean=means[currentState], sd=stddevs[currentState])
+    
+    et = max(0, rnorm(1, mean= means[currentState], sd = stddevs[currentState]))
     workload = workload + et
     if (workload > deadline){
       deadlineMissCountState[currentState] = deadlineMissCountState[currentState] + 1
@@ -48,6 +46,7 @@ countDMSim <- function(startingState, n, transitionMatrix, means, stddevs, deadl
       zeroWLCount = zeroWLCount + 1
       zeroWLCountPerState[currentState] = zeroWLCountPerState[currentState] +1
     }
+    
     workload = max(0, workload-nQs)
   }
   lengthsStatesProportions = lengthsStatesCount/sum(lengthsStatesCount)
@@ -55,20 +54,20 @@ countDMSim <- function(startingState, n, transitionMatrix, means, stddevs, deadl
   statesProportions = colSums(lengthsStatesProportions)
   print("states proportions")
   print(statesProportions)
-  indLast = 50
+  indLast = 30
   while(lengthsProportions[indLast] < 1e-10){
     indLast = indLast - 1
   }
   beta_est = rep(0, indLast)
-  beta_states_est = matrix(data = rep(0, (nStates+1)*indLast), nrow = indLast, ncol = (nStates+1))
+  beta_states_est = matrix(data = rep(0, 3*indLast), nrow = indLast, ncol = 3)
   beta_last = 0
-  beta_states_last = rep(0, nStates)
+  beta_states_last = rep(0, 2)
   while(indLast > 0){
     beta_last = beta_last + lengthsProportions[indLast]
     beta_est[indLast] = beta_last
     beta_states_last = beta_states_last + lengthsStatesProportions[indLast, ]
     beta_states_est[indLast,1] = indLast - 1
-    beta_states_est[indLast,2:(nStates+1)] = beta_states_last
+    beta_states_est[indLast,2:3] = beta_states_last
     indLast = indLast - 1
   }
   dmp = deadlineMissCountState/stateCount
@@ -78,43 +77,25 @@ countDMSim <- function(startingState, n, transitionMatrix, means, stddevs, deadl
   
 
 
-nStates = 8
-trMat = read.csv("../../data/models/cont/transitionMatrix.txt", 
-                 header=FALSE, sep = " ")
-transitionMatrix = data.matrix(trMat)
-normalParams = read.csv("../../data/models/cont/normalParams.txt", 
-                        header=FALSE, sep = " ")
+nStates = 2
+transitionMatrix = matrix(c(0.9, 0.7, 0.1, 0.3),
+                          nrow=nStates, ncol=nStates)
+means = c(20, 40)
+stddevs = c(3, 4)
+Qs = 8
+n = 4
+nQs = n* Qs
+k = 8
+deadline = k * Qs
+nPeriods = 10000
 
+set.seed(3)
+calcStationaryProbDistr(transitionMatrix)
 
-means = normalParams[,1]
-stddevs = normalParams[,2]
+resDMCountSimpleEx = countDMSim(2, nPeriods, transitionMatrix, means, stddevs, deadline, nQs)
 
+print(resDMCountSimpleEx[[1]])
+print(resDMCountSimpleEx[[2]])
+print(resDMCountSimpleEx[[3]])
+write.table(resDMCountSimpleEx[3], row.names = FALSE, col.names = FALSE, sep=",", "../../data/sim_cont/exampleBetasSim.csv")
 
-QsList = c(60000, 70000, 80000)
-nsList = c(5, 4, 4)
-ksList = list(c(8, 10), c(6, 8), c(6,8))
-
-for(j in 1:3){
-  Qs = QsList[j]
-  n = nsList[j]
-  nQs = n*Qs
-  for(kiter in 1:2){
-    k = ksList [[j]][kiter]
-    deadline = k*Qs
-    nPeriods = 1000000
-
-    calcStationaryProbDistr(transitionMatrix)
-    print(Qs)
-    print(n)
-    print(k)
-    
-    resDMCountSimpleEx = countDMSim(1, nPeriods, transitionMatrix, means, stddevs, deadline, nQs, nStates)
-  
-    print(resDMCountSimpleEx[[1]])
-    print(resDMCountSimpleEx[[2]])
-    print(resDMCountSimpleEx[[3]])
-    filename = paste("../../data/sim_cont/betasSim", Qs, "_", n, "_", k, ".csv", sep="")
-    write.table(resDMCountSimpleEx[3], row.names = FALSE, col.names = FALSE, sep=",", filename)
-
-  }
-}
