@@ -6,7 +6,7 @@ library(forecast)
 dataFrame <- read.csv("../data/traces_reports_csv/control_time_full.csv")
 dataFrame$executionTimeMS = dataFrame$executionTime*1e-6
 ggplot(dataFrame, aes(x=executionTimeMS)) +
-  geom_histogram(binwidth = 0.001, aes(y=..density..), fill="grey") +
+  geom_histogram(binwidth = 0.001, aes(y=after_stat(density)), fill="grey") +
   xlab("Execution time (ms)") +
   ylab("Density") + theme_bw() +  theme(text = element_text(size = 28)) + 
   theme(axis.text.x= element_text(size = 28)) + 
