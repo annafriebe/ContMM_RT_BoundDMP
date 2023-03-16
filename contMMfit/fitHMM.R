@@ -158,22 +158,6 @@ EstimateValidateModel <- function(dataFrame, outputDir, maxNStates, nPartitions,
 }
 
 
-#args = commandArgs(trailingOnly=TRUE)
-#if (length(args) < 2){
-#  stop("At least two input argument must be given (observations file and output directory)", call.=FALSE)
-#}
-#if(length(args) < 3){
-  # default starting number of states
-#  args[3] = 10
-#}
-#if(length(args) < 4){
-  # default number of partitions
-#  args[4] = 4
-#}
-#if(length(args) < 5){
-  # default number of iterations to try
-#  args[5] = 3
-#}
 observationsFile = "../data/traces_reports_csv/control_time.csv"
 outputDir = "../data/models/cont"
 maxNStates = 10
