@@ -73,14 +73,14 @@ with open('../../data/models/cont/stationaryDistr.txt', 'r') as csvfile:
         r+= 1
 
 means = np.zeros(nStates)
-vars = np.zeros(nStates)
+variances = np.zeros(nStates)
 with open('../../data/models/cont/normalParams.txt', 'r') as csvfile:
     reader = csv.reader(csvfile)
     r = 0
     for row in reader:
         rowElems = row[0].split(sep = ' ')
         means[r] = float(rowElems[0])
-        vars[r] = pow(float(rowElems[1]), 2)
+        variances[r] = pow(float(rowElems[1]), 2)
         r+= 1
         
 QsList = [60000, 70000, 80000]
@@ -95,11 +95,6 @@ epsilon = 1e-9
 
 outputBaseFilename = "../../data/dmp_bound/pzwl_dmp_control"
 
-boundAllConfigs(outputBaseFilename, QsList, nList, ksList, means, vars, transitionMatrix, statProbs, beta_first_bound_list, nStates, epsilon)
+boundAllConfigs(outputBaseFilename, QsList, nList, ksList, means, variances, transitionMatrix, statProbs, beta_first_bound_list, nStates, epsilon)
 
-#epsilon = 1e-6
-#epsilon = 1e-4
-
-#estAllConfigs(outputBaseFilename, QsList, nList, ksList, means, vars, 
-#              transitionMatrix, statProbs, nStates, epsilon)
 
