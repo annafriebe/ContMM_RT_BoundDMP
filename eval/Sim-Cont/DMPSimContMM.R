@@ -94,6 +94,13 @@ QsList = c(60000, 70000, 80000)
 nsList = c(5, 4, 4)
 ksList = list(c(8, 10), c(6, 8), c(6,8))
 
+outputQ = c()
+outputN = c()
+outputK = c()
+outputDMP3 = c()
+outputDMPAll = c()
+
+
 for(j in 1:3){
   Qs = QsList[j]
   n = nsList[j]
@@ -115,6 +122,15 @@ for(j in 1:3){
     print(resDMCountSimpleEx[[3]])
     filename = paste("../../data/sim_cont/betasSim", Qs, "_", n, "_", k, ".csv", sep="")
     write.table(resDMCountSimpleEx[3], row.names = FALSE, col.names = FALSE, sep=",", filename)
-
+    outputQ = append(outputQ, Qs)
+    outputN = append(outputN, n)
+    outputK = append(outputK, k)
+    outputDMP3 = append(outputDMP3, resDMCountSimpleEx[[1]][[3]])
+    outputDMPAll = append(outputDMPAll, resDMCountSimpleEx[[2]])
   }
 }
+
+output = data.frame(Q = outputQ, n = outputN, k = outputK, dmp3 = outputDMP3, dmpAll = outputDMPAll)
+outputFileName="../../data/sim_cont/dmp_result.csv"
+write.csv(output, outputFileName)
+
