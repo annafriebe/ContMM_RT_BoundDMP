@@ -31,43 +31,46 @@ countDMTest <- function(executionTimes, deadline, nQs){
   }
   zWLRatio = zeroWLCount/length(executionTimes)
   dmpAll = deadlineMissCount/length(executionTimes)
-#  print(deadlineMissAt)
   return(list(zWLRatio, nWLMax, dmpAll))
 }
 
 
 testDMPAll <- function(QsList, nsList, ksList, filename, nFiles, nSamplesInd){
+  outputQ = c()
+  outputN = c()
+  outputK = c()
+  outputDMP = c()
   for(j in 1:3){
     Qs = QsList[j]
     n = nsList[j]
     nQs = n*Qs
-    dmrs = matrix(rep(0,2), nrow=1, ncol=2)
     for(kiter in 1:2){
       k = ksList [[j]][kiter]
       deadline = k*Qs
-      nWLMax = 0
-      zeroWLProbMin = 1
-      dmpMax = 0
-      zWLProbSum = 0
-      dmpSum = 0
       print(Qs)
       print(n)
       print(k)
       dataFrame <- read.csv(filename, header=TRUE)
       independentOrder = sample(dataFrame$executionTime, nSamplesInd, replace=TRUE)
       resDMCountSimpleEx = countDMTest(independentOrder, deadline, nQs)
-      print(resDMCountSimpleEx[3])
+      print(resDMCountSimpleEx[[3]])
+      outputQ = append(outputQ, Qs)
+      outputN = append(outputN, n)
+      outputK = append(outputK, k)
+      outputDMP = append(outputDMP, resDMCountSimpleEx[[3]])
     }
   }
+  output = data.frame(Q = outputQ, n = outputN, k = outputK, dmp = outputDMP)
+  return(output)
 }
-
-print("test")
 
 QsList = c(60000, 70000, 80000)
 nsList = c(5, 4, 4)
 ksList = list(c(8, 10), c(6, 8), c(6,8))
 
 filename = "../../data/traces_reports_csv/control_time.csv"
-
+set.seed(23)
 print("results")
-testDMPAll(QsList, nsList, ksList, filename, nSequences, 1000000)
+output = testDMPAll(QsList, nsList, ksList, filename, nSequences, 1000000)
+outputFileName="../../data/ind/result.csv"
+write.csv(output, outputFileName)
