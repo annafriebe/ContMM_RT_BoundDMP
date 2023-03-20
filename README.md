@@ -54,7 +54,7 @@ Fig 12 b) is reproduced in ContMM_RT_BoundDMP/fig/ggplot_acorr.png (and .eps)
 user@host:~$cd ~/ContMM_RT_BoundDMP/contMMfit
 user@host:~/ContMM_RT_BoundDMP/contMMfit$Rscript fitHMM.R
 ````
-This fits a HMM to the timing data in ContMM_RT_BoundDMP/data/traces_reports_csv/control_time_full.csv
+This fits a HMM to the timing data in ContMM_RT_BoundDMP/data/traces_reports_csv/control_time.csv
 
 The fitted model is described by the files in ContMM_RT_BoundDMP/data/models/cont. 
 Eq. 32 is reproduced in ContMM_RT_BoundDMP/data/models/cont/transitionMatrix.txt
@@ -62,8 +62,21 @@ The mean and standard deviation columns of Table IV are found in nanoseconds in 
 The Stationary Prob. Column of Table IV is found in the ContMM_RT_BoundDMP/data/models/cont/stationaryDistr.txt file.
 
 ### Simulation with independence assumption
+```console
+user@host:~$cd ~/ContMM_RT_BoundDMP/eval/Ind
+user@host:~/ContMM_RT_BoundDMP/eval/Ind$Rscript DMPEstCBSInd.R
+````
+This estimates the DMP with an independence assumption, by randomly reordering the data in 
+ContMM_RT_BoundDMP/data/traces_reports_csv/control_time.csv before entering it into a CBS simulation.
+The result is output in ContMM_RT_BoundDMP/data/ind/result.csv.
 
 ### Simulation with continuous model
+```console
+user@host:~$cd ~/ContMM_RT_BoundDMP/eval/Sim-Cont
+user@host:~/ContMM_RT_BoundDMP/eval/Sim-Cont$Rscript DMPSimContMM.R
+````
+This estimates the DMP from the fitted HMM by generating execution times that are entered into a CBS simulation.
+The resulting files are saved to ContMM_RT_BoundDMP/data/sim_cont.
 
 ### Evaluating the DMP bound
 ```console
@@ -71,7 +84,7 @@ user@host:~$cd ~/ContMM_RT_BoundDMP/eval/Bound
 user@host:~/ContMM_RT_BoundDMP/eval/Bound$python3 DMPAccum8State.py
 ````
 This runs the accumulation process for the DMP bound, using the fitted model in ContMM_RT_BoundDMP/data/models/cont/
-The resulting files are saved to ContMM_RT_BoundDMP/data/dmp_bound
+The resulting files are saved to ContMM_RT_BoundDMP/data/dmp_bound.
 
 ### PROSIT
 
