@@ -99,6 +99,9 @@ Fig. 13 is reproduced in eval_fig.png (and .eps) from files in ContMM_RT_BoundDM
 
 ### Installation
 
+The evaluation has been performed on a Raspberry Pi Model 3B+, with a kernel patched with RT-preempt fetched from https://github.com/kdoren/linux/releases/
+The used kernel is the 32-bit kernel: 5.15.65-rt49-v7l+
+
 ### Running the test program
 
 
