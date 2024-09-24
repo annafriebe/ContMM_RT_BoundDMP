@@ -6,6 +6,7 @@
 import numpy as np
 import csv
 import EstZeroWLProbAccum
+import time
 
 def createOutputLine(i, result_betas, result_zwl_hi, result_zwl_lo, 
                      result_dmp_hi, nStates):
@@ -25,30 +26,45 @@ def createOutputLine(i, result_betas, result_zwl_hi, result_zwl_lo,
 
 def boundAllConfigs(outputBaseFilename, QsList, nList, ksList, means, \
                        vars, transitionMatrix, statProbs, beta_first_bound_list, nStates, epsilon):
-    for i in range(len(QsList)):
-        Qs = QsList[i]
-        n = nList[i]
-        nQs = n * Qs
-        ks = ksList[i]
-        beta_first_bound = beta_first_bound_list[i]
-        for k in ks:
-            deadline = k*Qs
-            min_dmp_overall = 1
-            min_dmp_3 = 1
-            (cvProbsPeriods, zwl_LE, zwl_UE, lp_UE, result_betas, result_zwl_lo, result_zwl_hi, result_dmp_hi) = \
-                EstZeroWLProbAccum.createAccVectorsZWLUBLinEqBound(nStates, means, vars, transitionMatrix, nQs, statProbs, beta_first_bound, deadline, epsilon, 10)
-            filename = outputBaseFilename + "_bound_" + str(Qs) + "_" + str(n) + "_" + str(k) + ".csv"
-            with open(filename, 'w', newline='') as csvfile:
-                betasZwlWriter = csv.writer(csvfile)
-                for i in range(len(result_betas)):
-                    if result_dmp_hi[i][1] < min_dmp_overall:
-                        min_dmp_overall = result_dmp_hi[i][1]
-                    if result_dmp_hi[i][0][2] < min_dmp_3:
-                        min_dmp_3 = result_dmp_hi[i][0][2]
-                    outputLine = createOutputLine(i, result_betas, result_zwl_hi,
-                                                  result_zwl_lo, result_dmp_hi, nStates)
-                    betasZwlWriter.writerow(outputLine)
-                betasZwlWriter.writerow((min_dmp_3, min_dmp_overall))
+    nPeriods = [5, 10]
+    for p in nPeriods:
+        times = []
+        for i in range(len(QsList)):
+            Qs = QsList[i]
+            n = nList[i]
+            nQs = n * Qs
+            ks = ksList[i]
+            beta_first_bound = beta_first_bound_list[i]
+            for k in ks:
+                deadline = k*Qs
+                min_dmp_overall = 1
+                min_dmp_3 = 1
+                t_before_bound = time.perf_counter_ns()
+                (cvProbsPeriods, zwl_LE, zwl_UE, lp_UE, result_betas, result_zwl_lo, result_zwl_hi, result_dmp_hi) = \
+                    EstZeroWLProbAccum.createAccVectorsZWLUBLinEqBound(nStates, means, vars, transitionMatrix, nQs, statProbs, beta_first_bound, deadline, epsilon, p)
+                t_after_bound = time.perf_counter_ns()
+                print("time", t_after_bound -t_before_bound)
+                times.append(t_after_bound - t_before_bound)
+                if p == nPeriods[-1]:
+                    filename = outputBaseFilename + "_bound_" + str(Qs) + "_" + str(n) + "_" + str(k) + ".csv"
+                    with open(filename, 'w', newline='') as csvfile:
+                        betasZwlWriter = csv.writer(csvfile)
+                        for i in range(len(result_betas)):
+                            if result_dmp_hi[i][1] < min_dmp_overall:
+                                min_dmp_overall = result_dmp_hi[i][1]
+                            if result_dmp_hi[i][0][2] < min_dmp_3:
+                                min_dmp_3 = result_dmp_hi[i][0][2]
+                            outputLine = createOutputLine(i, result_betas, result_zwl_hi, result_zwl_lo, result_dmp_hi, nStates)
+                            betasZwlWriter.writerow(outputLine)
+                        betasZwlWriter.writerow((min_dmp_3, min_dmp_overall))
+        filename = outputBaseFilename + str(p) + "_time.csv"
+        time_arr = np.asarray(times)
+        with open(filename, 'w', newline='') as csvfile:
+            timesWriter = csv.writer(csvfile)
+            for t in times:
+                timesWriter.writerow((t,))
+            timesWriter.writerow((np.mean(time_arr)*1e-9,))
+            timesWriter.writerow((np.std(time_arr)*1e-9,))
 
 
 

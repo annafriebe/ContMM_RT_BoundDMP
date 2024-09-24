@@ -26,6 +26,23 @@ def initCombinationVectorProbs(nStates, transitionMatrix, means, vars, nQs, stat
         cvProbsFirstPer[s][cvTuple] = sCVProbs
     return cvProbsFirstPer
 
+def initCombinationVectorProbsAlphas(nStates, transitionMatrix, means, vars, alphas, nQs, statProbs):
+    cvProbsFirstPer = []
+    for s in range(nStates):
+        cvProbsFirstPer.append({})
+    for s in range(nStates):
+        combinationVector = [0]*nStates
+        combinationVector[s] = 1
+        cvTuple = tuple(combinationVector)
+        sCVProbs = StateCVProbs(s, cvTuple, nStates, alphas[s]-nQs)
+        for sPrev in range(nStates):
+            prevOutputProbs = [0]*nStates
+            prevOutputProbs[sPrev] = statProbs[sPrev]
+            sCVProbs.addInputProbs(transitionMatrix, sPrev, prevOutputProbs, prevOutputProbs, 0, nQs)
+        sCVProbs.calcMeanVarOutputProbs(means, vars, nQs)
+        cvProbsFirstPer[s][cvTuple] = sCVProbs
+    return cvProbsFirstPer
+
 def addCombinationVectorProbs(nStates, transitionMatrix, means, vars, nQs, 
                               prevCombVectorProbs):
     cvProbsNextPer = []
@@ -73,9 +90,9 @@ def calcDMPHi(cvProbs, nPeriods, nStates, zwlUB, lp_UB, statProbs, nQs, deadline
         probsPartHi[s] = sumProbsHi[s] / statProbs[s] 
         dmpOE[s] = dmpSumHi/statProbs[s] + lp_UB[s]/statProbs[s] 
 #    print('probs part: ', probsPartHi)
-    print('dmp: ', dmpOE)
+#    print('dmp: ', dmpOE)
     dmpAll = sum(dmpOE*statProbs)
-    print('dmp overall: ', dmpAll)
+#    print('dmp overall: ', dmpAll)
     return (dmpOE, dmpAll)
 
 
@@ -280,7 +297,7 @@ def findMaxProbs(cvProbs, nStates, statProbs, limits):
         pointsList.append(zwl_UE_test)
     probsList = validEndpoints(pointsList, nStates)
     if not probsList:
-        print("No valid upper point")
+#        print("No valid upper point")
         return np.ones(nStates)
     zwl_UB = maxProbs(probsList, nStates)
     return zwl_UB
@@ -304,7 +321,7 @@ def findMinProbs(cvProbs, nStates, statProbs, limits):
         pointsList.append(zwl_LE_test)
     probsList = validEndpoints(pointsList, nStates)
     if not probsList:
-        print("no valid lower point")
+#        print("no valid lower point")
         return np.zeros(nStates)
     zwl_LB = minProbs(probsList, nStates)
     return zwl_LB
@@ -346,7 +363,73 @@ def createAccVectorsZWLUBLinEqBound(nStates, means, vars, transitionMatrix, nQs,
         cvProbsNext = addCombinationVectorProbs(nStates, transitionMatrix, \
                                                 means, vars, nQs, cvProbs)
         cvProbsPeriods.append(cvProbsNext)
-        print(len(cvProbsPeriods))
+#        print(len(cvProbsPeriods))
+        cvProbs = cvProbsNext
+        prev_zwl_LE = zwl_LE.copy()
+        prev_zwl_UE = zwl_UE.copy()
+        prevBeta = ubPLonger.copy()
+        ubPLonger = calcBeta(cvProbsPeriods, len(cvProbsPeriods), nStates, zwl_LE, prevBeta, statProbs)
+        result_betas.append(ubPLonger.copy())
+        zwl_LE = findMinProbs(cvProbsPeriods, nStates, statProbs, ubPLonger)
+        lp_UE = longerProbs_UE(cvProbsPeriods, len(cvProbsPeriods), nStates, statProbs, zwl_LE)
+        zwl_UE = findMaxProbs(cvProbsPeriods, nStates, statProbs, ubPLonger)
+        dmp = calcDMPHi(cvProbsPeriods, len(cvProbsPeriods), nStates, zwl_UE, ubPLonger, statProbs, nQs, deadline)
+        result_zwl_lo.append(zwl_LE.copy())
+        result_zwl_hi.append(zwl_UE.copy())
+        result_dmp_hi.append(dmp)
+        ue_started_decrease = np.logical_or(zwl_UE < prev_zwl_UE - eps_vec, ue_started_decrease)
+        ue_stopped_decrease = np.logical_and(np.logical_or(zwl_UE > prev_zwl_UE - eps_vec, ue_stopped_decrease), ue_started_decrease)
+        le_started_increase = np.logical_or(zwl_LE > prev_zwl_LE + eps_vec, le_started_increase)
+        le_stopped_increase = np.logical_and(np.logical_or(zwl_LE < prev_zwl_LE + eps_vec, le_stopped_increase), le_started_increase)
+    #    print(ue_started_decrease)
+    #    print(ue_stopped_decrease)
+    #    print(le_started_increase)
+    #    print(le_stopped_increase)
+        
+    return (cvProbsPeriods, zwl_LE, zwl_UE, ubPLonger, result_betas, result_zwl_lo, result_zwl_hi, result_dmp_hi)
+
+
+
+
+def createAccVectorsZWLUBLinEqBoundMerge(nStates, means, vars, alphas, 
+                                         transitionMatrix, nQs, statProbs, 
+                                         beta_bound, deadline, epsilon, 
+                                         max_accum_periods = 20, period_bound = 1):
+    cvProbsPeriods = []
+    cvProbs = initCombinationVectorProbsAlphas(nStates, transitionMatrix, 
+                                               means, vars, alphas, nQs, statProbs)
+    cvProbsPeriods.append(cvProbs)
+    for i in range(period_bound-1):
+        cvProbsNext = addCombinationVectorProbs(nStates, transitionMatrix, \
+                                                means, vars, nQs, cvProbs)
+        cvProbsPeriods.append(cvProbsNext)
+        cvProbs = cvProbsNext
+    ubPLonger = beta_bound 
+    result_betas = []
+    result_zwl_lo = []
+    result_zwl_hi = []
+    result_dmp_hi = []
+    result_betas.append(ubPLonger.copy())
+    zwl_LE = findMinProbs(cvProbsPeriods, nStates, statProbs, ubPLonger)
+    lp_UE = longerProbs_UE(cvProbsPeriods, 1, nStates, statProbs, zwl_LE)
+
+    zwl_UE = findMaxProbs(cvProbsPeriods, nStates, statProbs, ubPLonger)
+    dmp = calcDMPHi(cvProbsPeriods, len(cvProbsPeriods), nStates, zwl_UE, ubPLonger, statProbs, nQs, deadline)
+    result_zwl_lo.append(zwl_LE.copy())
+    result_zwl_hi.append(zwl_UE.copy())
+    result_dmp_hi.append(dmp)
+
+    ue_started_decrease = np.full((nStates), False)
+    ue_stopped_decrease = np.full((nStates), False)
+    le_started_increase = np.full((nStates), False)
+    le_stopped_increase = np.full((nStates), False)
+    eps_vec = np.full((nStates), 1e-9)
+
+    while not (np.all(ue_stopped_decrease) or np.all(le_stopped_increase)) and (len(cvProbsPeriods) < max_accum_periods):
+        cvProbsNext = addCombinationVectorProbs(nStates, transitionMatrix, \
+                                                means, vars, nQs, cvProbs)
+        cvProbsPeriods.append(cvProbsNext)
+#        print(len(cvProbsPeriods))
         cvProbs = cvProbsNext
         prev_zwl_LE = zwl_LE.copy()
         prev_zwl_UE = zwl_UE.copy()
