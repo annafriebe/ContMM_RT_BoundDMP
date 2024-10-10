@@ -5,7 +5,7 @@ import json
 
 
 
-def draw_bounds(axes, ax_row_ind, filename):
+def draw_bounds_8(axes, ax_row_ind, filename):
 	dmp_bound_state_3 = []
 	dmp_bound_overall = []
 	x = []
@@ -23,6 +23,25 @@ def draw_bounds(axes, ax_row_ind, filename):
 				dmp_bound_overall.append(float(row[dmp_overall_ind]))
 	axes[ax_row_ind][0].plot(x, dmp_bound_state_3, color='black')
 	axes[ax_row_ind][1].plot(x, dmp_bound_overall, color='black')
+
+def draw_bounds_2(axes, ax_row_ind, filename):
+	dmp_bound_worst = []
+	dmp_bound_overall = []
+	x = []
+	# the lines contain the accumulation index + 2 per-state betas + 
+	# 2 per-state lower p_{wd} + 2 per-state higher p_{wd} + 2 per-state dmp bound +
+	# the overall dmp bound
+	dmpworst_ind = 1 + 2*3 
+	dmp_overall_ind = 1 + 2*4
+	with open(filename) as csv_file:
+		csv_reader = csv.reader(csv_file, delimiter=',')
+		for row in csv_reader:
+			if len(row) > 2: 
+				x.append(int(row[0]))
+				dmp_bound_worst.append(float(row[dmpworst_ind]))
+				dmp_bound_overall.append(float(row[dmp_overall_ind]))
+	axes[ax_row_ind][0].plot(x, dmp_bound_worst, color='green')
+	axes[ax_row_ind][1].plot(x, dmp_bound_overall, color='green')
 
 def index_from_Q_k(Q, k):
 	if Q == 60000:
@@ -110,7 +129,18 @@ dmp_bound_filenames = [\
 "../data/dmp_bound/pzwl_dmp_control_bound_80000_4_6.csv"\
 ]
 for i in range(6):
-	draw_bounds(axs, i, dmp_bound_filenames[i])
+	draw_bounds_8(axs, i, dmp_bound_filenames[i])
+
+dmp_merged_bound_filenames = [\
+"../data/dmp_bound/pzwl_dmp_control_merged_bound_60000_5_10.csv",\
+"../data/dmp_bound/pzwl_dmp_control_merged_bound_60000_5_8.csv",\
+"../data/dmp_bound/pzwl_dmp_control_merged_bound_70000_4_8.csv",\
+"../data/dmp_bound/pzwl_dmp_control_merged_bound_70000_4_6.csv",\
+"../data/dmp_bound/pzwl_dmp_control_merged_bound_80000_4_8.csv",\
+"../data/dmp_bound/pzwl_dmp_control_merged_bound_80000_4_6.csv"\
+]
+for i in range(6):
+	draw_bounds_2(axs, i, dmp_merged_bound_filenames[i])
 
 sim_cont_filename = "../data/sim_cont/dmp_result.csv"	
 draw_sim_cont(axs, sim_cont_filename)
@@ -141,7 +171,7 @@ for i in range(3):
 		axs[fig_ind][1].hlines(y=dmp_fig, xmin=1, xmax=10, color='blue')
 		
 # titles
-axs[0][0].set_title("State 3")
+axs[0][0].set_title("Worst state")
 axs[0][1].set_title("Overall")
 
 
@@ -202,13 +232,16 @@ axs[5][1].grid(visible=True)
 
 # legends
 #red_plot = mpatches.Patch(color="red", label = "Experimental")
-black_plot = mlines.Line2D([],[],color="black", label = "Bound on $p_{dm}$")
+black_plot = mlines.Line2D([],[],color="black", label = "Bound-8 on $p_{dm}$")
+green_plot = mlines.Line2D([],[],color="green", label = "Bound-2 on $p_{dm}$")
 yellow_plot = mlines.Line2D([],[],color="yellow", label = "Linux CBS experimental DMR")
 dashed_plot = mlines.Line2D([],[],color="black", linestyle="dashed", label = "PROSIT-derived $p_{dm}$")
 red_plot = mlines.Line2D([],[],color="red", label = "Sim-Cont $p_{dm}$ from simulation")
 blue_plot = mlines.Line2D([],[],color="blue", label = "Ind $p_{dm}$ assuming independence")
 #axs[5][0].legend(handles=[black_plot, yellow_plot, dashed_plot, red_plot, blue_plot], loc='upper left', )
-fig.legend(handles=[black_plot, yellow_plot, dashed_plot, red_plot, blue_plot], \
+#fig.legend(handles=[black_plot, green_plot, yellow_plot, dashed_plot, red_plot, blue_plot], \
+#	loc = 'lower center', ncol = 2, fontsize='x-small')
+fig.legend(handles=[black_plot, red_plot, blue_plot, green_plot, yellow_plot, dashed_plot], \
 	loc = 'lower center', ncol = 2, fontsize='x-small')
 #fig.legend(handles=[black_plot, yellow_plot, dashed_plot, red_plot, blue_plot], loc = 10)
 fig.savefig("eval_fig.png")
